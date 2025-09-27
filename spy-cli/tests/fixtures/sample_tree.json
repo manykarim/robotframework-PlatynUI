@@ -1,0 +1,48 @@
+[
+  {
+    "id": "root",
+    "role": "window",
+    "name": "Calculator",
+    "properties": {
+      "AutomationId": "rootWindow",
+      "ProcessId": 420
+    },
+    "children": [
+      {
+        "id": "display",
+        "role": "text",
+        "name": "Display",
+        "properties": {
+          "Value": "0"
+        },
+        "children": []
+      },
+      {
+        "id": "num-5",
+        "role": "button",
+        "name": "5",
+        "properties": {
+          "AutomationId": "num5Button"
+        },
+        "children": []
+      },
+      {
+        "id": "operators",
+        "role": "group",
+        "name": "Operators",
+        "properties": {},
+        "children": [
+          {
+            "id": "plus",
+            "role": "button",
+            "name": "+",
+            "properties": {
+              "AutomationId": "plusButton"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+]

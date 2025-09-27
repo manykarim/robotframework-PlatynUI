@@ -1,0 +1,28 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run cargo fmt
+        run: cargo fmt --manifest-path spy-cli/Cargo.toml -- --check
+
+      - name: Run cargo clippy
+        run: cargo clippy --manifest-path spy-cli/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Run cargo test
+        run: cargo test --manifest-path spy-cli/Cargo.toml --all-targets
