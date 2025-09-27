@@ -1,0 +1,65 @@
+{
+  "name": "Desktop",
+  "role": "desktop",
+  "attributes": {
+    "AutomationId": "ROOT",
+    "Processes": 2
+  },
+  "children": [
+    {
+      "name": "Calculator",
+      "role": "window",
+      "attributes": {
+        "AutomationId": "CalcWindow",
+        "processId": 4242,
+        "Name": "Calculator"
+      },
+      "children": [
+        {
+          "name": "Display",
+          "role": "text",
+          "attributes": {
+            "Name": "Result",
+            "Value.Value": "0"
+          },
+          "children": []
+        },
+        {
+          "name": "Number Pad",
+          "role": "group",
+          "attributes": {
+            "Name": "Numbers"
+          },
+          "children": [
+            {
+              "name": "One",
+              "role": "button",
+              "attributes": {
+                "AutomationId": "num1Button",
+                "Name": "1"
+              },
+              "children": []
+            },
+            {
+              "name": "Two",
+              "role": "button",
+              "attributes": {
+                "AutomationId": "num2Button",
+                "Name": "2"
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "role": "window",
+      "attributes": {
+        "Name": "Settings"
+      },
+      "children": []
+    }
+  ]
+}

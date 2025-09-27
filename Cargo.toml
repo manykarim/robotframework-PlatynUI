@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "crates/platynui-spy-cli"
+]
+resolver = "2"

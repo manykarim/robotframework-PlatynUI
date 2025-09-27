@@ -84,6 +84,16 @@ PlatynUI.Spy
 - Identify elements and properties in your application
 - Access elements with it's properties and build locators to access and simulate ui applications
 
+### Spy CLI
+
+For headless environments a Rust-based spy CLI is available in `crates/platynui-spy-cli`. It reads JSON snapshots and prints the filtered UI tree to standard output:
+
+```console
+cargo run -p platynui-spy-cli -- --input path/to/tree.json --format tree --filter-role window
+```
+
+Use `--help` to explore the available filters and output formats.
+
 ## Demo
 
 - [Robocon 2025](https://www.youtube.com/watch?v=H3gOjp1VZWQ)
