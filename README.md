@@ -89,10 +89,15 @@ PlatynUI.Spy
 For headless environments a Rust-based spy CLI is available in `crates/platynui-spy-cli`. It reads JSON snapshots and prints the filtered UI tree to standard output:
 
 ```console
-cargo run -p platynui-spy-cli -- --input path/to/tree.json --format tree --filter-role window
+cargo run -p platynui-spy-cli -- \
+  --input path/to/tree.json \
+  --format tree \
+  --filter-role window \
+  --no-include-ancestors \
+  --show-attributes
 ```
 
-Use `--help` to explore the available filters and output formats.
+Use `--help` to explore the available filters, including toggles such as `--show-attributes` and `--no-include-ancestors`.
 
 ## Demo
 

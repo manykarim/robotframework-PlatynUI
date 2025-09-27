@@ -27,8 +27,7 @@ fn filters_by_role_and_attribute() {
         .arg("json")
         .arg("--filter-attr")
         .arg("AutomationId=num2Button")
-        .arg("--include-ancestors")
-        .arg("false");
+        .arg("--no-include-ancestors");
 
     cmd.assert()
         .success()

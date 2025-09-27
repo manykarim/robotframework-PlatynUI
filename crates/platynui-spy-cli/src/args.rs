@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{Parser, ValueEnum};
+use clap::{ArgAction, Parser, ValueEnum};
 use thiserror::Error;
 
 use crate::filter::FilterConfig;
@@ -43,10 +43,13 @@ pub struct Cli {
     #[arg(long = "filter-attr")]
     pub filter_attrs: Vec<String>,
 
-    #[arg(long, default_value_t = true)]
+    #[arg(long, action = ArgAction::SetTrue)]
     pub include_ancestors: bool,
 
-    #[arg(long, default_value_t = false)]
+    #[arg(long = "no-include-ancestors", action = ArgAction::SetTrue)]
+    pub no_include_ancestors: bool,
+
+    #[arg(long, action = ArgAction::SetTrue)]
     pub show_attributes: bool,
 }
 
@@ -87,9 +90,17 @@ impl Cli {
             .map(|s| s.trim().to_lowercase())
             .filter(|s| !s.is_empty());
 
+        let include_ancestors = if self.no_include_ancestors {
+            false
+        } else if self.include_ancestors {
+            true
+        } else {
+            true
+        };
+
         let filter = FilterConfig::new(
             self.max_depth,
-            self.include_ancestors,
+            include_ancestors,
             name_filter,
             role_filter,
             attr_pairs,
