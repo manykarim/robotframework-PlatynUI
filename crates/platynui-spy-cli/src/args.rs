@@ -43,10 +43,14 @@ pub struct Cli {
     #[arg(long = "filter-attr")]
     pub filter_attrs: Vec<String>,
 
-    #[arg(long, action = ArgAction::SetTrue)]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with = "no_include_ancestors")]
     pub include_ancestors: bool,
 
-    #[arg(long = "no-include-ancestors", action = ArgAction::SetTrue)]
+    #[arg(
+        long = "no-include-ancestors",
+        action = ArgAction::SetTrue,
+        conflicts_with = "include_ancestors"
+    )]
     pub no_include_ancestors: bool,
 
     #[arg(long, action = ArgAction::SetTrue)]
@@ -60,6 +64,9 @@ pub enum ArgsError {
 
     #[error("invalid attribute filter '{0}', expected key=value")]
     InvalidAttributeFilter(String),
+
+    #[error("--include-ancestors and --no-include-ancestors cannot be used together")]
+    ConflictingAncestorFlags,
 }
 
 #[derive(Debug, Clone)]
@@ -90,12 +97,11 @@ impl Cli {
             .map(|s| s.trim().to_lowercase())
             .filter(|s| !s.is_empty());
 
-        let include_ancestors = if self.no_include_ancestors {
-            false
-        } else if self.include_ancestors {
-            true
-        } else {
-            true
+        let include_ancestors = match (self.include_ancestors, self.no_include_ancestors) {
+            (true, true) => return Err(ArgsError::ConflictingAncestorFlags),
+            (true, false) => true,
+            (false, true) => false,
+            (false, false) => true,
         };
 
         let filter = FilterConfig::new(
@@ -132,4 +138,47 @@ fn parse_attr(raw: &str) -> Result<(String, String), ArgsError> {
     }
 
     Ok((key.to_string(), value.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn base_cli() -> Cli {
+        Cli {
+            backend: BackendKind::File,
+            input: Some(PathBuf::from("tree.json")),
+            format: OutputFormat::Tree,
+            max_depth: None,
+            filter_name: None,
+            filter_role: None,
+            filter_attrs: Vec::new(),
+            include_ancestors: false,
+            no_include_ancestors: false,
+            show_attributes: false,
+        }
+    }
+
+    #[test]
+    fn conflicting_ancestor_flags_are_rejected() {
+        let mut cli = base_cli();
+        cli.include_ancestors = true;
+        cli.no_include_ancestors = true;
+
+        let err = cli.build_config().expect_err("conflict");
+        assert!(matches!(err, ArgsError::ConflictingAncestorFlags));
+    }
+
+    #[test]
+    fn parse_attr_accepts_valid_pairs() {
+        let pair = parse_attr("AutomationId=MainWindow").expect("pair");
+        assert_eq!(pair, ("AutomationId".to_string(), "MainWindow".to_string()));
+    }
+
+    #[test]
+    fn parse_attr_rejects_invalid_pairs() {
+        let err = parse_attr("no-equals").expect_err("error");
+        assert!(matches!(err, ArgsError::InvalidAttributeFilter(_)));
+    }
 }
