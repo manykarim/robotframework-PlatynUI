@@ -84,6 +84,16 @@ PlatynUI.Spy
 - Identify elements and properties in your application
 - Access elements with it's properties and build locators to access and simulate ui applications
 
+### Rust Command-Line Spy
+
+- Build the Rust-based spy utility inside this repository for scripted inspection workflows:
+
+  ```console
+  cargo run --manifest-path spy-cli/Cargo.toml -- --input path/to/tree.json --role button --include-properties
+  ```
+- Pipe JSON dumps into the process (or provide an input path) to receive a filtered UI tree on stdout.
+- Combine options such as `--name-pattern`, `--property key=value`, and `--max-depth` to narrow the output to the elements you need.
+
 ## Demo
 
 - [Robocon 2025](https://www.youtube.com/watch?v=H3gOjp1VZWQ)

@@ -150,6 +150,9 @@ wheelhouse/
 .build/
 Package.resolved
 
+### Rust ###
+target/
+
 # intellij
 .idea/
 *.DotSettings.user
