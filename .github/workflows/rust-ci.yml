@@ -111,26 +111,26 @@ jobs:
         run: |
           set -euxo pipefail
           python - <<'PY'
-from pathlib import Path
+          from pathlib import Path
 
-from platynui_spy import ESSENTIAL_ATTRIBUTES, SpyConfig, capture
+          from platynui_spy import ESSENTIAL_ATTRIBUTES, SpyConfig, capture
 
-fixture = Path("crates/platynui-spy-cli/tests/data/sample_tree.json").resolve()
+          fixture = Path("crates/platynui-spy-cli/tests/data/sample_tree.json").resolve()
 
-config = (
-    SpyConfig.backend("file")
-    .with_input(str(fixture))
-    .with_attribute_set("essential")
-)
+          config = (
+              SpyConfig.backend("file")
+              .with_input(str(fixture))
+              .with_attribute_set("essential")
+          )
 
-tree = capture(config)
+          tree = capture(config)
 
-assert tree["name"] == "Desktop"
-assert tree["children"], "expected child nodes in sample tree"
-first_child = tree["children"][0]
-assert first_child["attributes"]["AutomationId"] == "CalcWindow"
-assert "AutomationId" in ESSENTIAL_ATTRIBUTES
-PY
+          assert tree["name"] == "Desktop"
+          assert tree["children"], "expected child nodes in sample tree"
+          first_child = tree["children"][0]
+          assert first_child["attributes"]["AutomationId"] == "CalcWindow"
+          assert "AutomationId" in ESSENTIAL_ATTRIBUTES
+          PY
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
