@@ -3,14 +3,15 @@ use std::path::PathBuf;
 #[cfg(target_os = "windows")]
 use clap::Args;
 use clap::{ArgAction, Parser, ValueEnum};
+use platynui_spy_core::{
+    AppConfig, AttributeConfig, AttributeSet, BackendKind, FilterConfig, XPath, XPathParseError,
+};
+#[cfg(target_os = "windows")]
+use platynui_spy_core::{Win32Config, Win32Root};
 use thiserror::Error;
 
-use crate::attributes::{AttributeConfig, AttributeSet};
-use crate::filter::FilterConfig;
-use crate::xpath::{XPath, XPathParseError};
-
 #[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
-pub enum BackendKind {
+pub enum BackendArg {
     File,
     #[cfg(target_os = "windows")]
     Win32,
@@ -22,9 +23,16 @@ pub enum OutputFormat {
     Json,
 }
 
+#[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
+pub enum AttributeSetArg {
+    None,
+    Essential,
+    Full,
+}
+
 #[cfg(target_os = "windows")]
 #[derive(Debug, Clone, ValueEnum, PartialEq, Eq, Default)]
-pub enum Win32Root {
+pub enum Win32RootArg {
     #[default]
     Desktop,
     Focused,
@@ -34,8 +42,8 @@ pub enum Win32Root {
 #[derive(Debug, Clone, Args, Default)]
 #[command(next_help_heading = "Windows UI Automation")]
 pub struct Win32CliOptions {
-    #[arg(long, value_enum, default_value_t = Win32Root::Desktop)]
-    pub root: Win32Root,
+    #[arg(long, value_enum, default_value_t = Win32RootArg::Desktop)]
+    pub root: Win32RootArg,
 
     #[arg(long)]
     pub process_id: Option<u32>,
@@ -60,7 +68,21 @@ impl Win32CliOptions {
         self.process_id.is_some()
             || self.normalized_window_title().is_some()
             || self.top_level_only
-            || !matches!(self.root, Win32Root::Desktop)
+            || !matches!(self.root, Win32RootArg::Desktop)
+    }
+
+    fn to_config(&self) -> Win32Config {
+        let root = match self.root {
+            Win32RootArg::Desktop => Win32Root::Desktop,
+            Win32RootArg::Focused => Win32Root::Focused,
+        };
+
+        Win32Config {
+            root,
+            process_id: self.process_id,
+            window_title: self.normalized_window_title(),
+            top_level_only: self.top_level_only,
+        }
     }
 }
 
@@ -70,8 +92,8 @@ impl Win32CliOptions {
     about = "Inspect UI automation trees from the command line."
 )]
 pub struct Cli {
-    #[arg(long, value_enum, default_value_t = BackendKind::File)]
-    pub backend: BackendKind,
+    #[arg(long, value_enum, default_value_t = BackendArg::File)]
+    pub backend: BackendArg,
 
     #[arg(long)]
     pub input: Option<PathBuf>,
@@ -101,8 +123,8 @@ pub struct Cli {
     )]
     pub no_include_ancestors: bool,
 
-    #[arg(long, value_enum, default_value_t = AttributeSet::Essential)]
-    pub attribute_set: AttributeSet,
+    #[arg(long, value_enum, default_value_t = AttributeSetArg::Essential)]
+    pub attribute_set: AttributeSetArg,
 
     #[arg(long = "attribute")]
     pub attribute_keys: Vec<String>,
@@ -135,28 +157,13 @@ pub enum ArgsError {
 }
 
 #[derive(Debug, Clone)]
-pub struct AppConfig {
-    pub backend: BackendKind,
-    pub input: Option<PathBuf>,
+pub struct CliConfig {
+    pub capture: AppConfig,
     pub format: OutputFormat,
-    pub filter: FilterConfig,
-    pub attributes: AttributeConfig,
-    pub xpath: Option<XPath>,
-    #[cfg(target_os = "windows")]
-    pub win32: Win32Config,
-}
-
-#[cfg(target_os = "windows")]
-#[derive(Debug, Clone)]
-pub struct Win32Config {
-    pub root: Win32Root,
-    pub process_id: Option<u32>,
-    pub window_title: Option<String>,
-    pub top_level_only: bool,
 }
 
 impl Cli {
-    pub fn build_config(&self) -> Result<AppConfig, ArgsError> {
+    pub fn build_config(&self) -> Result<CliConfig, ArgsError> {
         let attr_pairs = self
             .filter_attrs
             .iter()
@@ -189,8 +196,12 @@ impl Cli {
             attr_pairs,
         );
 
-        let attributes =
-            AttributeConfig::new(self.attribute_set.clone(), self.attribute_keys.clone());
+        let attribute_set = match self.attribute_set {
+            AttributeSetArg::None => AttributeSet::None,
+            AttributeSetArg::Essential => AttributeSet::Essential,
+            AttributeSetArg::Full => AttributeSet::Full,
+        };
+        let attributes = AttributeConfig::new(attribute_set, self.attribute_keys.clone());
 
         let xpath = match &self.xpath {
             Some(raw) => {
@@ -204,41 +215,41 @@ impl Cli {
             None => None,
         };
 
-        if self.backend == BackendKind::File && self.input.is_none() {
+        let backend = match self.backend {
+            BackendArg::File => BackendKind::File,
+            #[cfg(target_os = "windows")]
+            BackendArg::Win32 => BackendKind::Win32,
+        };
+
+        if matches!(backend, BackendKind::File) && self.input.is_none() {
             return Err(ArgsError::MissingInput);
         }
 
         #[cfg(target_os = "windows")]
-        if self.backend != BackendKind::Win32 && self.win32.has_win32_args() {
+        if !matches!(backend, BackendKind::Win32) && self.win32.has_win32_args() {
             return Err(ArgsError::Win32OptionsWithoutBackend);
         }
 
         #[cfg(target_os = "windows")]
-        let win32 = if self.backend == BackendKind::Win32 {
-            Win32Config {
-                root: self.win32.root.clone(),
-                process_id: self.win32.process_id,
-                window_title: self.win32.normalized_window_title(),
-                top_level_only: self.win32.top_level_only,
-            }
+        let win32 = if matches!(backend, BackendKind::Win32) {
+            self.win32.to_config()
         } else {
-            Win32Config {
-                root: Win32Root::Desktop,
-                process_id: None,
-                window_title: None,
-                top_level_only: false,
-            }
+            Win32Config::default()
         };
 
-        Ok(AppConfig {
-            backend: self.backend.clone(),
+        let capture = AppConfig {
+            backend,
             input: self.input.clone(),
-            format: self.format.clone(),
             filter,
             attributes,
             xpath,
             #[cfg(target_os = "windows")]
             win32,
+        };
+
+        Ok(CliConfig {
+            capture,
+            format: self.format.clone(),
         })
     }
 }
@@ -264,7 +275,7 @@ mod tests {
 
     fn base_cli() -> Cli {
         Cli {
-            backend: BackendKind::File,
+            backend: BackendArg::File,
             input: Some(PathBuf::from("tree.json")),
             format: OutputFormat::Tree,
             max_depth: None,
@@ -273,7 +284,7 @@ mod tests {
             filter_attrs: Vec::new(),
             include_ancestors: false,
             no_include_ancestors: false,
-            attribute_set: AttributeSet::Essential,
+            attribute_set: AttributeSetArg::Essential,
             attribute_keys: Vec::new(),
             xpath: None,
             #[cfg(target_os = "windows")]
@@ -309,7 +320,7 @@ mod tests {
         cli.xpath = Some("   ".into());
 
         let config = cli.build_config().expect("config");
-        assert!(config.xpath.is_none());
+        assert!(config.capture.xpath.is_none());
     }
 
     #[test]

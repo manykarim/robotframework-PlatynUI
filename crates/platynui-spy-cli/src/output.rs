@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 
-use crate::attributes::{AttributeConfig, AttributeSet, ESSENTIAL_ATTRIBUTES};
-use crate::model::{json_value_to_string, UiNode};
+use platynui_spy_core::{
+    json_value_to_string, AttributeConfig, AttributeSet, UiNode, ESSENTIAL_ATTRIBUTES,
+};
 
 pub fn format_tree(node: &UiNode, attributes: &AttributeConfig) -> String {
     let mut lines = Vec::new();

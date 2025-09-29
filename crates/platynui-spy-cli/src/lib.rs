@@ -1,17 +1,11 @@
 pub mod args;
-pub mod attributes;
-pub mod backend;
-pub mod filter;
-pub mod model;
 pub mod output;
-pub mod xpath;
 
 use anyhow::Context;
 use clap::Parser;
+use platynui_spy_core::{capture_tree, BackendError};
 
-use args::{Cli, OutputFormat};
-use backend::BackendError;
-use filter::filter_tree;
+use args::{Cli, CliConfig, OutputFormat};
 
 pub fn run() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -19,8 +13,10 @@ pub fn run() -> anyhow::Result<()> {
 }
 
 fn run_with_args(cli: Cli) -> anyhow::Result<()> {
-    let config = cli.build_config().map_err(anyhow::Error::from)?;
-    let mut tree = backend::load_tree(&config).map_err(|err| match err {
+    let CliConfig { capture, format } = cli.build_config().map_err(anyhow::Error::from)?;
+    let attributes = capture.attributes.clone();
+
+    let maybe_tree = capture_tree(&capture).map_err(|err| match err {
         BackendError::MissingInput => anyhow::Error::new(err),
         BackendError::ReadFailure { path, source } => {
             anyhow::Error::new(source).context(format!("failed to read input {:?}", path))
@@ -38,28 +34,10 @@ fn run_with_args(cli: Cli) -> anyhow::Result<()> {
         }
     })?;
 
-    if let Some(xpath) = &config.xpath {
-        let matches = xpath.select(&tree);
-        if matches.is_empty() {
-            return Ok(());
-        }
-
-        tree = if matches.len() == 1 {
-            matches.into_iter().next().expect("single match")
-        } else {
-            model::UiNode {
-                name: "XPathMatches".to_string(),
-                role: None,
-                attributes: Default::default(),
-                children: matches,
-            }
-        };
-    }
-
-    if let Some(filtered) = filter_tree(&tree, &config.filter) {
-        match config.format {
+    if let Some(filtered) = maybe_tree {
+        match format {
             OutputFormat::Tree => {
-                let rendered = output::format_tree(&filtered, &config.attributes);
+                let rendered = output::format_tree(&filtered, &attributes);
                 println!("{rendered}");
             }
             OutputFormat::Json => {

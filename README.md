@@ -111,6 +111,36 @@ cargo run -p platynui-spy-cli -- \
 
 Additional options such as `--root focused` and `--top-level-only` are available to control which window is captured.
 
+### Spy Python bindings
+
+The shared capture engine is also exposed to Python through the `platynui_spy` extension module located in
+`crates/platynui-spy-py`. Build it with [maturin](https://github.com/PyO3/maturin) or `pip install .` and import the
+module to drive the Rust collector from Python:
+
+```python
+from platynui_spy import SpyConfig, capture
+
+# Load a recorded snapshot from disk
+tree = capture(
+    SpyConfig.backend("file")
+    .with_input("sample_tree.json")
+    .with_attribute_set("essential")
+)
+
+# On Windows you can interrogate a live application
+# tree = capture(
+#     SpyConfig.backend("win32")
+#     .with_window_title("Calculator")
+#     .with_attribute_filter("AutomationId", "num5Button")
+# )
+
+print(tree["children"][0]["name"])
+```
+
+`SpyConfig` mirrors the CLI switches: filtering by name, role, attribute pairs, XPath, and (on Windows) process selectors
+and window titles. The resulting UI tree is returned as nested Python dictionaries and lists that match the JSON output
+of the CLI.
+
 ## Demo
 
 - [Robocon 2025](https://www.youtube.com/watch?v=H3gOjp1VZWQ)

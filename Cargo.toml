@@ -1,5 +1,7 @@
 [workspace]
 members = [
-    "crates/platynui-spy-cli"
+    "crates/platynui-spy-core",
+    "crates/platynui-spy-cli",
+    "crates/platynui-spy-py"
 ]
 resolver = "2"
