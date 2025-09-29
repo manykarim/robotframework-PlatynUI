@@ -100,6 +100,38 @@ jobs:
         run: >-
           maturin build --release --manifest-path crates/platynui-spy-py/Cargo.toml --interpreter python --out dist
 
+      - name: Install wheel
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m pip install dist/*.whl
+
+      - name: Smoke test Python binding
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python - <<'PY'
+from pathlib import Path
+
+from platynui_spy import ESSENTIAL_ATTRIBUTES, SpyConfig, capture
+
+fixture = Path("crates/platynui-spy-cli/tests/data/sample_tree.json").resolve()
+
+config = (
+    SpyConfig.backend("file")
+    .with_input(str(fixture))
+    .with_attribute_set("essential")
+)
+
+tree = capture(config)
+
+assert tree["name"] == "Desktop"
+assert tree["children"], "expected child nodes in sample tree"
+first_child = tree["children"][0]
+assert first_child["attributes"]["AutomationId"] == "CalcWindow"
+assert "AutomationId" in ESSENTIAL_ATTRIBUTES
+PY
+
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
