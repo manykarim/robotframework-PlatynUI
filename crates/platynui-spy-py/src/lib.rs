@@ -68,9 +68,11 @@ impl SpyConfig {
 
     #[classmethod]
     fn backend(_cls: &Bound<PyType>, backend: &str) -> PyResult<Self> {
-        let mut cfg = Self::default();
-        cfg.backend = parse_backend(backend)?;
-        Ok(cfg)
+        let backend = parse_backend(backend)?;
+        Ok(Self {
+            backend,
+            ..Self::default()
+        })
     }
 
     fn with_backend(&self, backend: &str) -> PyResult<Self> {
@@ -313,18 +315,18 @@ fn json_to_py(py: Python<'_>, value: &JsonValue) -> PyResult<PyObject> {
         }
         JsonValue::String(s) => Ok(s.into_py(py)),
         JsonValue::Array(items) => {
-            let list = PyList::empty(py);
+            let list = PyList::empty_bound(py);
             for item in items {
                 list.append(json_to_py(py, item)?)?;
             }
-            Ok(list.into())
+            Ok(list.into_py(py))
         }
         JsonValue::Object(map) => {
-            let dict = PyDict::new(py);
+            let dict = PyDict::new_bound(py);
             for (key, value) in map {
                 dict.set_item(key, json_to_py(py, value)?)?;
             }
-            Ok(dict.into())
+            Ok(dict.into_py(py))
         }
     }
 }
@@ -465,7 +467,7 @@ mod tests {
                 .expect("attribute set");
             let result = capture(py, &cfg).expect("capture result");
             let value = result.expect("tree available");
-            let json: JsonValue = py_to_json(&value.bind(py)).expect("extract json");
+            let json: JsonValue = py_to_json(value.bind(py)).expect("extract json");
             assert_eq!(json["name"], JsonValue::String("Calculator".into()));
         });
     }
