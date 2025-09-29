@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "crates/platynui-spy-core",
+    "crates/platynui-spy-cli",
+    "crates/platynui-spy-py"
+]
+default-members = [
+    "crates/platynui-spy-core",
+    "crates/platynui-spy-cli"
+]
+resolver = "2"
