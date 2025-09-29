@@ -37,7 +37,9 @@ Shared data model:
 | `--filter-role <ROLE>` | Exact match on the `role` field. |
 | `--filter-attr <KEY=VALUE>` | Match arbitrary attribute key/value pairs (repeatable). |
 | `--include-ancestors/--no-include-ancestors` | Keep ancestors of matching nodes (default: true). |
-| `--show-attributes` | Include attribute summary in tree output. |
+| `--attribute-set <none|essential|full>` | Control which attributes are rendered in the tree output (default: `essential`). |
+| `--attribute <KEY>` | Include additional attribute keys alongside the selected set. Repeatable. |
+| `--xpath <PATH>` | Limit the capture to the subtree that matches the provided XPath-like expression. |
 | `--root <desktop|focused>` | (Windows) Select the root element when using the Win32 backend. |
 | `--process-id <PID>` | (Windows) Restrict capture to elements owned by the provided process id. |
 | `--window-title <TEXT>` | (Windows) Match windows whose title contains the provided text (case-insensitive). |

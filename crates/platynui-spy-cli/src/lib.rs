@@ -1,8 +1,10 @@
 pub mod args;
+pub mod attributes;
 pub mod backend;
 pub mod filter;
 pub mod model;
 pub mod output;
+pub mod xpath;
 
 use anyhow::Context;
 use clap::Parser;
@@ -18,7 +20,7 @@ pub fn run() -> anyhow::Result<()> {
 
 fn run_with_args(cli: Cli) -> anyhow::Result<()> {
     let config = cli.build_config().map_err(anyhow::Error::from)?;
-    let tree = backend::load_tree(&config).map_err(|err| match err {
+    let mut tree = backend::load_tree(&config).map_err(|err| match err {
         BackendError::MissingInput => anyhow::Error::new(err),
         BackendError::ReadFailure { path, source } => {
             anyhow::Error::new(source).context(format!("failed to read input {:?}", path))
@@ -36,10 +38,28 @@ fn run_with_args(cli: Cli) -> anyhow::Result<()> {
         }
     })?;
 
+    if let Some(xpath) = &config.xpath {
+        let matches = xpath.select(&tree);
+        if matches.is_empty() {
+            return Ok(());
+        }
+
+        tree = if matches.len() == 1 {
+            matches.into_iter().next().expect("single match")
+        } else {
+            model::UiNode {
+                name: "XPathMatches".to_string(),
+                role: None,
+                attributes: Default::default(),
+                children: matches,
+            }
+        };
+    }
+
     if let Some(filtered) = filter_tree(&tree, &config.filter) {
         match config.format {
             OutputFormat::Tree => {
-                let rendered = output::format_tree(&filtered, config.show_attributes);
+                let rendered = output::format_tree(&filtered, &config.attributes);
                 println!("{rendered}");
             }
             OutputFormat::Json => {

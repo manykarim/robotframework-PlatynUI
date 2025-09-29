@@ -94,10 +94,10 @@ cargo run -p platynui-spy-cli -- \
   --format tree \
   --filter-role window \
   --no-include-ancestors \
-  --show-attributes
+  --attribute-set full
 ```
 
-Use `--help` to explore the available filters, including toggles such as `--show-attributes` and `--no-include-ancestors`.
+By default the tree renderer displays a curated attribute bundle that always includes `AutomationId`, `Name`, `ControlType`, `ClassName`, `FrameworkId`, `BoundingRectangle`, `IsEnabled`, and `IsOffscreen`. Supply `--attribute-set full` to emit every captured attribute, or add individual keys with repeated `--attribute KEY` switches. Combine these with `--xpath /Desktop/Calculator/Number Pad` to focus the output on a specific subtree.
 
 On Windows the CLI can interrogate running desktop applications directly via the `win32` backend. Select a target window using a process id or part of the window title and the tool will emit the corresponding UI Automation subtree:
 

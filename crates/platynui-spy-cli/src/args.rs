@@ -5,7 +5,9 @@ use clap::Args;
 use clap::{ArgAction, Parser, ValueEnum};
 use thiserror::Error;
 
+use crate::attributes::{AttributeConfig, AttributeSet};
 use crate::filter::FilterConfig;
+use crate::xpath::{XPath, XPathParseError};
 
 #[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
 pub enum BackendKind {
@@ -99,8 +101,14 @@ pub struct Cli {
     )]
     pub no_include_ancestors: bool,
 
-    #[arg(long, action = ArgAction::SetTrue)]
-    pub show_attributes: bool,
+    #[arg(long, value_enum, default_value_t = AttributeSet::Essential)]
+    pub attribute_set: AttributeSet,
+
+    #[arg(long = "attribute")]
+    pub attribute_keys: Vec<String>,
+
+    #[arg(long)]
+    pub xpath: Option<String>,
 
     #[cfg(target_os = "windows")]
     #[command(flatten)]
@@ -118,6 +126,9 @@ pub enum ArgsError {
     #[error("--include-ancestors and --no-include-ancestors cannot be used together")]
     ConflictingAncestorFlags,
 
+    #[error("invalid XPath expression: {0}")]
+    InvalidXPath(#[from] XPathParseError),
+
     #[cfg(target_os = "windows")]
     #[error("win32-specific options require --backend win32")]
     Win32OptionsWithoutBackend,
@@ -129,7 +140,8 @@ pub struct AppConfig {
     pub input: Option<PathBuf>,
     pub format: OutputFormat,
     pub filter: FilterConfig,
-    pub show_attributes: bool,
+    pub attributes: AttributeConfig,
+    pub xpath: Option<XPath>,
     #[cfg(target_os = "windows")]
     pub win32: Win32Config,
 }
@@ -177,6 +189,21 @@ impl Cli {
             attr_pairs,
         );
 
+        let attributes =
+            AttributeConfig::new(self.attribute_set.clone(), self.attribute_keys.clone());
+
+        let xpath = match &self.xpath {
+            Some(raw) => {
+                let trimmed = raw.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(XPath::parse(trimmed).map_err(ArgsError::from)?)
+                }
+            }
+            None => None,
+        };
+
         if self.backend == BackendKind::File && self.input.is_none() {
             return Err(ArgsError::MissingInput);
         }
@@ -208,7 +235,8 @@ impl Cli {
             input: self.input.clone(),
             format: self.format.clone(),
             filter,
-            show_attributes: self.show_attributes,
+            attributes,
+            xpath,
             #[cfg(target_os = "windows")]
             win32,
         })
@@ -245,7 +273,9 @@ mod tests {
             filter_attrs: Vec::new(),
             include_ancestors: false,
             no_include_ancestors: false,
-            show_attributes: false,
+            attribute_set: AttributeSet::Essential,
+            attribute_keys: Vec::new(),
+            xpath: None,
             #[cfg(target_os = "windows")]
             win32: Win32CliOptions::default(),
         }
@@ -271,6 +301,24 @@ mod tests {
     fn parse_attr_rejects_invalid_pairs() {
         let err = parse_attr("no-equals").expect_err("error");
         assert!(matches!(err, ArgsError::InvalidAttributeFilter(_)));
+    }
+
+    #[test]
+    fn whitespace_xpath_is_ignored() {
+        let mut cli = base_cli();
+        cli.xpath = Some("   ".into());
+
+        let config = cli.build_config().expect("config");
+        assert!(config.xpath.is_none());
+    }
+
+    #[test]
+    fn invalid_xpath_reports_error() {
+        let mut cli = base_cli();
+        cli.xpath = Some("Calculator".into());
+
+        let err = cli.build_config().expect_err("invalid xpath");
+        assert!(matches!(err, ArgsError::InvalidXPath(_)));
     }
 
     #[cfg(target_os = "windows")]
