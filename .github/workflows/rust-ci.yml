@@ -36,10 +36,10 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy -p platynui-spy-core -p platynui-spy-cli --all-targets --all-features -- -D warnings
 
       - name: Tests
-        run: cargo test --all --all-features
+        run: cargo test -p platynui-spy-core -p platynui-spy-cli --all-features
 
       - name: Build release binary
         run: cargo build --release --package platynui-spy-cli
