@@ -21,8 +21,9 @@ pub enum OutputFormat {
 }
 
 #[cfg(target_os = "windows")]
-#[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, ValueEnum, PartialEq, Eq, Default)]
 pub enum Win32Root {
+    #[default]
     Desktop,
     Focused,
 }
