@@ -3,6 +3,14 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
+#[cfg(target_os = "windows")]
+mod win32;
+#[cfg(target_os = "windows")]
+use win32::load_win32_tree;
+
+#[cfg(target_os = "windows")]
+use uiautomation::Error as Win32AutomationError;
+
 use crate::args::{AppConfig, BackendKind};
 use crate::model::UiNode;
 
@@ -24,6 +32,17 @@ pub enum BackendError {
         #[source]
         source: serde_json::Error,
     },
+
+    #[cfg(target_os = "windows")]
+    #[error("failed to capture Windows UI Automation tree: {source}")]
+    WindowsAutomation {
+        #[from]
+        source: Win32AutomationError,
+    },
+
+    #[cfg(target_os = "windows")]
+    #[error("no Windows UI element matched the provided selectors: {selectors}")]
+    WindowsTargetNotFound { selectors: String },
 }
 
 pub fn load_tree(config: &AppConfig) -> Result<UiNode, BackendError> {
@@ -32,6 +51,8 @@ pub fn load_tree(config: &AppConfig) -> Result<UiNode, BackendError> {
             let path = config.input.clone().ok_or(BackendError::MissingInput)?;
             read_file_tree(path)
         }
+        #[cfg(target_os = "windows")]
+        BackendKind::Win32 => load_win32_tree(config),
     }
 }
 

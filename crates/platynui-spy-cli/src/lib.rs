@@ -26,6 +26,14 @@ fn run_with_args(cli: Cli) -> anyhow::Result<()> {
         BackendError::ParseFailure { path, source } => {
             anyhow::Error::new(source).context(format!("failed to parse UI tree from {:?}", path))
         }
+        #[cfg(target_os = "windows")]
+        BackendError::WindowsAutomation { source } => {
+            anyhow::anyhow!("failed to capture Windows UI Automation tree: {source}")
+        }
+        #[cfg(target_os = "windows")]
+        BackendError::WindowsTargetNotFound { selectors } => {
+            anyhow::anyhow!("no Windows UI element matched the provided selectors: {selectors}")
+        }
     })?;
 
     if let Some(filtered) = filter_tree(&tree, &config.filter) {

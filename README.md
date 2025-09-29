@@ -86,7 +86,7 @@ PlatynUI.Spy
 
 ### Spy CLI
 
-For headless environments a Rust-based spy CLI is available in `crates/platynui-spy-cli`. It reads JSON snapshots and prints the filtered UI tree to standard output:
+For headless environments a Rust-based spy CLI is available in `crates/platynui-spy-cli`. It can either load JSON snapshots or, on Windows, capture the UI Automation tree directly and print the filtered result to standard output.
 
 ```console
 cargo run -p platynui-spy-cli -- \
@@ -98,6 +98,18 @@ cargo run -p platynui-spy-cli -- \
 ```
 
 Use `--help` to explore the available filters, including toggles such as `--show-attributes` and `--no-include-ancestors`.
+
+On Windows the CLI can interrogate running desktop applications directly via the `win32` backend. Select a target window using a process id or part of the window title and the tool will emit the corresponding UI Automation subtree:
+
+```console
+cargo run -p platynui-spy-cli -- \
+  --backend win32 \
+  --process-id 1234 \
+  --window-title Calculator \
+  --format json
+```
+
+Additional options such as `--root focused` and `--top-level-only` are available to control which window is captured.
 
 ## Demo
 

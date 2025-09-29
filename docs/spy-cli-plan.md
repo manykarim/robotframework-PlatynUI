@@ -17,7 +17,7 @@ Each visual node is represented by `TreeNode`, which wraps an `INode` from the r
 
 - `crates/platynui-spy-cli`: a new Rust binary crate that exposes the CLI.
   - `args` module: defines the command line surface using `clap` and normalises filters.
-  - `backend` module: trait-based abstraction returning a `UiNode` tree. Initial implementation is `FileBackend` which reads JSON snapshots exported by other tools; future backends can wrap platform-specific providers.
+- `backend` module: pluggable abstraction returning a `UiNode` tree. Implementations include a JSON `FileBackend` and a Windows UI Automation backend that captures live desktop trees via the `uiautomation` crate.
   - `filter` module: applies attribute, name and role predicates as well as depth limits. Filtering keeps ancestors of matching nodes to preserve the tree context.
   - `output` module: renders the filtered tree either as an ASCII tree (default) or as pretty-printed JSON. Optional flags control attribute rendering.
   - `main.rs`: wires everything together, selecting the backend, applying filters and printing the result. Errors are reported with context using `anyhow` for good CLI diagnostics.
@@ -30,7 +30,7 @@ Shared data model:
 | Option | Description |
 | --- | --- |
 | `--input <PATH>` | JSON snapshot describing a UI tree. Required for the file backend. |
-| `--backend <mock|file>` | Backend selection. Defaults to `file` for now, leaving room for OS-specific backends. |
+| `--backend <file|win32>` | Backend selection. Defaults to `file`; `win32` is available on Windows to capture UI Automation trees. |
 | `--format <tree|json>` | Output format (ASCII tree or JSON). Default: `tree`. |
 | `--max-depth <N>` | Limit traversal depth (root depth = 0). |
 | `--filter-name <PATTERN>` | Case-insensitive substring filter on the node name. |
@@ -38,6 +38,10 @@ Shared data model:
 | `--filter-attr <KEY=VALUE>` | Match arbitrary attribute key/value pairs (repeatable). |
 | `--include-ancestors/--no-include-ancestors` | Keep ancestors of matching nodes (default: true). |
 | `--show-attributes` | Include attribute summary in tree output. |
+| `--root <desktop|focused>` | (Windows) Select the root element when using the Win32 backend. |
+| `--process-id <PID>` | (Windows) Restrict capture to elements owned by the provided process id. |
+| `--window-title <TEXT>` | (Windows) Match windows whose title contains the provided text (case-insensitive). |
+| `--top-level-only` | (Windows) Limit Win32 backend searches to top-level windows under the desktop root. |
 
 ## Testing strategy
 
@@ -54,6 +58,6 @@ Shared data model:
 
 ## Follow-up work (beyond this change)
 
-- Implement platform backends that call into the existing runtime components via FFI or IPC, replacing the JSON snapshot dependency.
+- Extend the backend surface with Linux and macOS implementations that call into the existing runtime components via FFI or IPC, complementing the new Windows UI Automation backend.
 - Streamline JSON snapshot generation directly from the existing Avalonia spy so the CLI can share capture logic.
 - Add optional output (e.g. CSV, XPath extraction) tailored to Robot Framework workflows.
