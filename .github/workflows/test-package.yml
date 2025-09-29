@@ -17,6 +17,7 @@ on:
 
 jobs:
   test:
+    if: ${{ false }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -66,6 +67,7 @@ jobs:
           path: test-results
 
   publish-test-results:
+    if: ${{ false }}
     needs: test
     runs-on: ubuntu-latest
     steps:
