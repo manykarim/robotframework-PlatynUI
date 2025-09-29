@@ -84,6 +84,65 @@ PlatynUI.Spy
 - Identify elements and properties in your application
 - Access elements with it's properties and build locators to access and simulate ui applications
 
+### Spy CLI
+
+For headless environments a Rust-based spy CLI is available in `crates/platynui-spy-cli`. It can either load JSON snapshots or, on Windows, capture the UI Automation tree directly and print the filtered result to standard output.
+
+```console
+cargo run -p platynui-spy-cli -- \
+  --input path/to/tree.json \
+  --format tree \
+  --filter-role window \
+  --no-include-ancestors \
+  --attribute-set full
+```
+
+By default the tree renderer displays a curated attribute bundle that always includes `AutomationId`, `Name`, `ControlType`, `ClassName`, `FrameworkId`, `BoundingRectangle`, `IsEnabled`, and `IsOffscreen`. Supply `--attribute-set full` to emit every captured attribute, or add individual keys with repeated `--attribute KEY` switches. Combine these with `--xpath /Desktop/Calculator/Number Pad` to focus the output on a specific subtree.
+
+On Windows the CLI can interrogate running desktop applications directly via the `win32` backend. Select a target window using a process id or part of the window title and the tool will emit the corresponding UI Automation subtree:
+
+```console
+cargo run -p platynui-spy-cli -- \
+  --backend win32 \
+  --process-id 1234 \
+  --window-title Calculator \
+  --format json
+```
+
+Additional options such as `--root focused` and `--top-level-only` are available to control which window is captured.
+
+### Spy Python bindings
+
+The shared capture engine is also exposed to Python through the `platynui_spy` extension module located in
+`crates/platynui-spy-py`. Install the published wheel with `pip install platynui-spy` (the distribution name of the
+binding) or build it locally with [maturin](https://github.com/PyO3/maturin) / `pip install .`, then import the module
+to drive the Rust collector from Python. The published wheels target Python's stable ABI (`abi3`) starting at
+CPython 3.10, so the same artifact installs cleanly on 3.10 through 3.13 without recompilation:
+
+```python
+from platynui_spy import SpyConfig, capture
+
+# Load a recorded snapshot from disk
+tree = capture(
+    SpyConfig.backend("file")
+    .with_input("sample_tree.json")
+    .with_attribute_set("essential")
+)
+
+# On Windows you can interrogate a live application
+# tree = capture(
+#     SpyConfig.backend("win32")
+#     .with_window_title("Calculator")
+#     .with_attribute_filter("AutomationId", "num5Button")
+# )
+
+print(tree["children"][0]["name"])
+```
+
+`SpyConfig` mirrors the CLI switches: filtering by name, role, attribute pairs, XPath, and (on Windows) process selectors
+and window titles. The resulting UI tree is returned as nested Python dictionaries and lists that match the JSON output
+of the CLI.
+
 ## Demo
 
 - [Robocon 2025](https://www.youtube.com/watch?v=H3gOjp1VZWQ)
