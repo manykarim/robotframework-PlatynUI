@@ -1,20 +1,15 @@
 use clap::ValueEnum;
 
 /// Preset attribute sets that can be selected from the command line.
-#[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, ValueEnum, PartialEq, Eq, Default)]
 pub enum AttributeSet {
     /// Emit no attributes at all.
     None,
     /// Emit a curated list of attributes that are commonly useful for UI automation.
+    #[default]
     Essential,
     /// Emit every attribute captured for the node.
     Full,
-}
-
-impl Default for AttributeSet {
-    fn default() -> Self {
-        AttributeSet::Essential
-    }
 }
 
 #[derive(Debug, Clone, Default)]

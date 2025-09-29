@@ -63,7 +63,7 @@ impl XPath {
             }
         }
 
-        current.into_iter().map(|node| node.clone()).collect()
+        current.into_iter().cloned().collect()
     }
 }
 
@@ -83,7 +83,7 @@ impl PathSegment {
                 '[' => {
                     let mut predicate = String::new();
                     let mut depth = 1usize;
-                    while let Some(next) = chars.next() {
+                    for next in chars.by_ref() {
                         match next {
                             '[' => {
                                 depth += 1;
@@ -139,9 +139,9 @@ impl PathSegment {
 
 #[derive(Debug, Clone)]
 enum Predicate {
-    NameEquals(String),
-    RoleEquals(String),
-    AttributeEquals(String, String),
+    Name(String),
+    Role(String),
+    Attribute(String, String),
 }
 
 impl Predicate {
@@ -158,21 +158,21 @@ impl Predicate {
         let value = parse_quoted(rhs.trim())
             .ok_or_else(|| XPathParseError::InvalidQuotedValue(raw.to_string()))?;
         match lhs.to_ascii_lowercase().as_str() {
-            "name" => Ok(Predicate::NameEquals(value)),
-            "role" => Ok(Predicate::RoleEquals(value)),
-            attr => Ok(Predicate::AttributeEquals(attr.to_string(), value)),
+            "name" => Ok(Predicate::Name(value)),
+            "role" => Ok(Predicate::Role(value)),
+            attr => Ok(Predicate::Attribute(attr.to_string(), value)),
         }
     }
 
     fn matches(&self, node: &UiNode) -> bool {
         match self {
-            Predicate::NameEquals(expected) => node.name.eq_ignore_ascii_case(expected),
-            Predicate::RoleEquals(expected) => node
+            Predicate::Name(expected) => node.name.eq_ignore_ascii_case(expected),
+            Predicate::Role(expected) => node
                 .role
                 .as_ref()
                 .map(|role| role.eq_ignore_ascii_case(expected))
                 .unwrap_or(false),
-            Predicate::AttributeEquals(key, expected) => node
+            Predicate::Attribute(key, expected) => node
                 .attributes
                 .iter()
                 .find(|(attr, _)| attr.eq_ignore_ascii_case(key))
@@ -220,9 +220,9 @@ impl fmt::Display for PathSegment {
 impl fmt::Display for Predicate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Predicate::NameEquals(value) => write!(f, "@name='{value}'"),
-            Predicate::RoleEquals(value) => write!(f, "@role='{value}'"),
-            Predicate::AttributeEquals(key, value) => write!(f, "@{key}='{value}'"),
+            Predicate::Name(value) => write!(f, "@name='{value}'"),
+            Predicate::Role(value) => write!(f, "@role='{value}'"),
+            Predicate::Attribute(key, value) => write!(f, "@{key}='{value}'"),
         }
     }
 }
