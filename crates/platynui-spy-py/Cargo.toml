@@ -6,6 +6,9 @@ authors = ["PlatynUI Contributors"]
 description = "Python bindings for the PlatynUI spy core"
 license = "Apache-2.0"
 
+[package.metadata.maturin]
+name = "platynui-spy"
+
 [lib]
 name = "platynui_spy"
 crate-type = ["cdylib", "rlib"]
