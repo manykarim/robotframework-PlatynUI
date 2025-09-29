@@ -115,7 +115,8 @@ Additional options such as `--root focused` and `--top-level-only` are available
 
 The shared capture engine is also exposed to Python through the `platynui_spy` extension module located in
 `crates/platynui-spy-py`. Build it with [maturin](https://github.com/PyO3/maturin) or `pip install .` and import the
-module to drive the Rust collector from Python:
+module to drive the Rust collector from Python. The published wheels target Python's stable ABI (`abi3`) starting at
+CPython 3.10, so the same artifact installs cleanly on 3.10 through 3.13 without recompilation:
 
 ```python
 from platynui_spy import SpyConfig, capture
